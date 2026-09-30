@@ -1,6 +1,24 @@
 import socket
 import protocol
 import os
+import hashlib
+
+def calcular_hash_arquivo(caminho):
+
+    hash_md5 = hashlib.md5()
+
+    with open(caminho, 'rb') as arquivo:
+
+        while True:
+            bloco = arquivo.read(protocol.TAM_PAYLOAD)
+
+            if not bloco:
+                break
+
+            hash_md5.update(bloco)
+    
+    return hash_md5.hexdigest()
+
 
 HOST = '127.0.0.1'
 #PORT = 65432
@@ -10,6 +28,7 @@ print(f"Socket criado!\n")
 
 sock.bind((HOST, protocol.PORTA)) # associando o socket a uma porta e endereço
 print(f"Servidor UDP iniciado e escutando em {HOST}:{protocol.PORTA}\n")
+print(f"//--------------------------------------------//\n")
 
 
 while True:
@@ -52,7 +71,11 @@ while True:
 
     print(f"Numero de pacotes a serem enviados: {numPacotes}\n")
 
-    sock.sendto(protocol.montar_pacote(protocol.TipoPacote.INFO, 0 , str(numPacotes).encode('utf-8')),  endereco)
+    hash_arquivo = calcular_hash_arquivo(caminho)
+    print(f"Hash do arquivo: {hash_arquivo}\n")
+    conteudoInfo = f"{numPacotes};{hash_arquivo}"      # monta o texto "8588;d0ae6a9b..."
+    
+    sock.sendto(protocol.montar_pacote(protocol.TipoPacote.INFO, 0, conteudoInfo.encode('utf-8')), endereco)
 
     with open(caminho,'rb') as arquivo:
 

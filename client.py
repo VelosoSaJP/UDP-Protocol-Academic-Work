@@ -1,6 +1,7 @@
 import socket
 import protocol
 import os
+import hashlib
 
 SERVIDOR_HOST = ('127.0.0.1', protocol.PORTA) # definindo o endereço do servidor, tupla com IP e porta
 
@@ -19,15 +20,18 @@ if(tipoPacote == protocol.TipoPacote.ERROR): # caso 1 ERROR
     sock.close() # fechando o socket
     exit() # saindo do programa
 
-if(tipoPacote == protocol.TipoPacote.INFO): # caso 2 INFO
-    numPacotes = int(dados.decode('utf-8')) # decodificando os bytes para string e convertendo para inteiro
-    print(f"Numero de pacotes a serem recebidos: {numPacotes}") # imprimindo o numero de pacotes a serem recebidos
+elif(tipoPacote == protocol.TipoPacote.INFO): # caso 2 INFO
+    total, hashServidor = dados.decode().split(";")
+    numPacotes = int(total)
+    print(f"Numero de pacotes a serem recebidos: {numPacotes}\n") # imprimindo o numero de pacotes a serem recebidos
 
     
     os.makedirs("downloads_client", exist_ok=True)   # cria a pasta se não existir (e não reclama se já existir)
     caminhoSaida = os.path.join("downloads_client", os.path.basename(nome))  # "downloads_client/teste.txt"
     
     with open(caminhoSaida, 'wb') as arquivo: # abrindo o arquivo para escrita em binario
+
+        hashArquivo = hashlib.md5() # criando um objeto para calcular o hash do arquivo recebido
 
         while(tipoPacote != protocol.TipoPacote.EOF): # loop para receber todos os pacotes
 
@@ -36,11 +40,20 @@ if(tipoPacote == protocol.TipoPacote.INFO): # caso 2 INFO
             tipoPacote, numSeq, checksum, dados = protocol.desmontar_pacote(pacote) # desmontando o pacote recebido
 
             if(tipoPacote == protocol.TipoPacote.DATA): # caso 1 DATA
-                arquivo.write(dados)
-                sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), SERVIDOR_HOST) 
+                
+                if(checksum != protocol.calcular_checksum(dados)): #verifica se o checksum bate
+                    print("Erro de checksum no pacote", numSeq)
+                else: # checksum == protocol.calcular_checksum(dados)
+                    arquivo.write(dados)
+                    hashArquivo.update(dados)
+                    sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), SERVIDOR_HOST) 
 
             if(tipoPacote == protocol.TipoPacote.EOF): # caso 2 EOF
-                print("Arquivo recebido com sucesso")
+
+                if(hashServidor != hashArquivo.hexdigest()): #verifica se o hash bate
+                    print("Erro de hash no arquivo recebido\n")
+                else:
+                    print(f"Arquivo recebido com sucesso! hash {hashArquivo.hexdigest()} verificado!\n")
                 break # saindo do loop
         sock.close() # fechando o socket
 
