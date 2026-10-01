@@ -19,7 +19,8 @@ else:
 
 sock.sendto(protocol.montar_pacote(protocol.TipoPacote.GET, 0, nome.encode('utf-8')), SERVIDOR_HOST) 
 
-resposta, _ = sock.recvfrom(protocol.BUFFER) # recebendo a resposta do servidor
+resposta, enderecoServidor = sock.recvfrom(protocol.BUFFER) # recebendo a resposta do servidor
+print(f"Resposta recebida do servidor {enderecoServidor}\n")
 
 tipoPacote, numSeq, checksum, dados = protocol.desmontar_pacote(resposta) # desmontando o pacote recebido
 
@@ -65,10 +66,10 @@ elif(tipoPacote == protocol.TipoPacote.INFO): # caso 2 INFO
                         proximoBloco += 1
                         arquivo.write(dados)
                         hashArquivo.update(dados)
-                        sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), SERVIDOR_HOST) 
+                        sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), enderecoServidor) 
                     elif(numSeq < proximoBloco):
                         print(f"Pacote {numSeq} ja recebido, ACK enviado novamente\n")
-                        sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), SERVIDOR_HOST)
+                        sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), enderecoServidor)
 
 
             if(tipoPacote == protocol.TipoPacote.EOF): # caso 2 EOF
