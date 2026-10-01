@@ -3,11 +3,12 @@ import protocol
 import os
 import hashlib
 
-SERVIDOR_HOST = ('127.0.0.1', protocol.PORTA) # definindo o endereço do servidor, tupla com IP e porta
-
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # criando um socket UDP - primeiro arg é o IPV4 , segundo arg é o tipo de socket (UDP)
 
+ip = input("Digite o IP do servidor: ")
+porta = int(input("Digite a porta do servidor: "))
 nome = input("Digite o nome do arquivo que deseja receber: ") # pedindo para o usuario digitar o nome do arquivo
+SERVIDOR_HOST = (ip, porta)
 
 texto = input("Digite os blocos que deseja descartar: ") # pedindo para o usuario digitar a quantidade de blocos que deseja receber
 
