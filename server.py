@@ -2,6 +2,7 @@ import socket
 import protocol
 import os
 import hashlib
+import random
 
 def calcular_hash_arquivo(caminho):
 
@@ -19,6 +20,7 @@ def calcular_hash_arquivo(caminho):
     
     return hash_md5.hexdigest()
 
+PROB_DESCARTE = 0.1 
 
 HOST = '127.0.0.1'
 #PORT = 65432
@@ -79,21 +81,46 @@ while True:
 
     with open(caminho,'rb') as arquivo:
 
+        sock.settimeout(protocol.TIMEOUT) 
+
         for i in range(numPacotes):
 
             pedaco = arquivo.read(protocol.TAM_PAYLOAD)
             dado = protocol.montar_pacote(protocol.TipoPacote.DATA, i, pedaco)
-            sock.sendto(dado, endereco)
+            tentativas = 0
+            
+            
+            #--------------------------------timeout--------------------------------------
+            while(tentativas < protocol.MAX_TENTATIVAS):
+                
+                if (tentativas == 0 and random.random() < PROB_DESCARTE):
+                    print(f"Pacote {i} descartado\n")
+                else:
+                    print(f"Enviando pacote {i} para {endereco}\n")
+                    sock.sendto(dado, endereco)
 
-            resposta, _ = sock.recvfrom(protocol.BUFFER)
-            ack, _, _, _ = protocol.desmontar_pacote(resposta)
-            if ack != protocol.TipoPacote.ACK:
-                print("ACK nao recebido, re-enviando pacote!\n")
-                continue
-
-        sock.sendto(protocol.montar_pacote(protocol.TipoPacote.EOF, 0, b""), endereco)
-        print(f"Arquivo {nome} enviado com sucesso para {endereco}!\n")
-        print(f"//--------------------------------------------//\n")
-    
+                try:
+                    resposta, _ = sock.recvfrom(protocol.BUFFER)
+                    seraUmAck,seq, checksum, dados = protocol.desmontar_pacote(resposta)
+                    if (seraUmAck == protocol.TipoPacote.ACK and seq == i):
+                        break
+                except socket.timeout:
+                    tentativas += 1
+                    print(f"Timeout no pacote {i}, re-enviando... (tentativa {tentativas})\n")
+                    if tentativas >= protocol.MAX_TENTATIVAS:
+                        break
+            #-------------------------------------
+            if(tentativas >= protocol.MAX_TENTATIVAS):
+                break
+            
+        
+        if(tentativas >= protocol.MAX_TENTATIVAS):
+            print(f"Falha ao enviar o arquivo {nome} para {endereco} apos {protocol.MAX_TENTATIVAS} tentativas\n")
+        else:
+            sock.sendto(protocol.montar_pacote(protocol.TipoPacote.EOF, 0, b""), endereco)
+            print(f"Arquivo {nome} enviado com sucesso para {endereco}!\n")
+            print(f"//--------------------------------------------//\n")
+        
+        sock.settimeout(None) 
     
 sock.close() # fechando o socket

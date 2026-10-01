@@ -20,6 +20,10 @@ TAM_PAYLOAD = 1500 - 20 - 8 - TAMANHO_CABECALHO #1500 é MTU, 20 do IPv4 e 8 do 
 
 BUFFER = TAMANHO_CABECALHO + TAM_PAYLOAD
 
+MAX_TENTATIVAS = 5
+
+TIMEOUT = 0.5
+
 
 def montar_pacote(tipoPacote, numSeq, dados):
     
