@@ -9,6 +9,14 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # criando um socket UDP 
 
 nome = input("Digite o nome do arquivo que deseja receber: ") # pedindo para o usuario digitar o nome do arquivo
 
+texto = input("Digite os blocos que deseja descartar: ") # pedindo para o usuario digitar a quantidade de blocos que deseja receber
+
+if (texto.strip() == ""):
+    blocosDescartados = set()
+else:
+    blocosDescartados = {int(numero) for numero in texto.split(',')}
+
+
 sock.sendto(protocol.montar_pacote(protocol.TipoPacote.GET, 0, nome.encode('utf-8')), SERVIDOR_HOST) 
 
 resposta, _ = sock.recvfrom(protocol.BUFFER) # recebendo a resposta do servidor
@@ -33,6 +41,8 @@ elif(tipoPacote == protocol.TipoPacote.INFO): # caso 2 INFO
 
         hashArquivo = hashlib.md5() # criando um objeto para calcular o hash do arquivo recebido
 
+        proximoBloco = 0
+
         while(tipoPacote != protocol.TipoPacote.EOF): # loop para receber todos os pacotes
 
             pacote, _ = sock.recvfrom(protocol.BUFFER) # recebendo o pacote do servidor
@@ -40,13 +50,26 @@ elif(tipoPacote == protocol.TipoPacote.INFO): # caso 2 INFO
             tipoPacote, numSeq, checksum, dados = protocol.desmontar_pacote(pacote) # desmontando o pacote recebido
 
             if(tipoPacote == protocol.TipoPacote.DATA): # caso 1 DATA
+
+                if numSeq in blocosDescartados:
+                    print(f"Pacore {numSeq} ignorado!!!\n")
+                    blocosDescartados.remove(numSeq) 
+                    continue
                 
                 if(checksum != protocol.calcular_checksum(dados)): #verifica se o checksum bate
                     print("Erro de checksum no pacote", numSeq)
+                
                 else: # checksum == protocol.calcular_checksum(dados)
-                    arquivo.write(dados)
-                    hashArquivo.update(dados)
-                    sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), SERVIDOR_HOST) 
+                    if(numSeq == proximoBloco): # verifica se o numero do pacote é o esperado
+                        #print(f"Pacote {numSeq} recebido com sucesso!\n")
+                        proximoBloco += 1
+                        arquivo.write(dados)
+                        hashArquivo.update(dados)
+                        sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), SERVIDOR_HOST) 
+                    elif(numSeq < proximoBloco):
+                        print(f"Pacote {numSeq} ja recebido, ACK enviado novamente\n")
+                        sock.sendto(protocol.montar_pacote(protocol.TipoPacote.ACK, numSeq, b""), SERVIDOR_HOST)
+
 
             if(tipoPacote == protocol.TipoPacote.EOF): # caso 2 EOF
 

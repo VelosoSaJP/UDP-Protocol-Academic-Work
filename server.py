@@ -20,7 +20,7 @@ def calcular_hash_arquivo(caminho):
     
     return hash_md5.hexdigest()
 
-PROB_DESCARTE = 0.1 
+PROB_DESCARTE = 0.01 
 
 HOST = '127.0.0.1'
 #PORT = 65432
@@ -96,7 +96,7 @@ while True:
                 if (tentativas == 0 and random.random() < PROB_DESCARTE):
                     print(f"Pacote {i} descartado\n")
                 else:
-                    print(f"Enviando pacote {i} para {endereco}\n")
+                    #print(f"Enviando pacote {i} para {endereco}\n")
                     sock.sendto(dado, endereco)
 
                 try:
