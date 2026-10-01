@@ -2,7 +2,6 @@ import socket
 import protocol
 import os
 import hashlib
-import random
 
 def calcular_hash_arquivo(caminho):
 
@@ -20,7 +19,6 @@ def calcular_hash_arquivo(caminho):
     
     return hash_md5.hexdigest()
 
-PROB_DESCARTE = 0.01 
 
 HOST = '127.0.0.1'
 #PORT = 65432
@@ -93,11 +91,7 @@ while True:
             #--------------------------------timeout--------------------------------------
             while(tentativas < protocol.MAX_TENTATIVAS):
                 
-                if (tentativas == 0 and random.random() < PROB_DESCARTE):
-                    print(f"Pacote {i} descartado\n")
-                else:
-                    #print(f"Enviando pacote {i} para {endereco}\n")
-                    sock.sendto(dado, endereco)
+                sock.sendto(dado, endereco)
 
                 try:
                     resposta, _ = sock.recvfrom(protocol.BUFFER)
